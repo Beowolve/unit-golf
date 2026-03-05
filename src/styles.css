@@ -1,0 +1,165 @@
+:root {
+  --primary-color: #2f5fb8;
+  --secondary-color: #4f6287;
+  --font-color: #273043;
+  --bg-color: #f5f8ff;
+  --surface-color: #ffffff;
+  --border-color: #d7dfea;
+  --heading-color: #273043;
+}
+
+[data-theme="dark"] {
+  --primary-color: #8ab4ff;
+  --secondary-color: #a7b5d6;
+  --font-color: #e6edf8;
+  --bg-color: #151a24;
+  --surface-color: #1e2532;
+  --border-color: #334159;
+  --heading-color: #e6edf8;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: Consolas, "Courier New", monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--font-color);
+}
+
+a,
+a:visited {
+  color: var(--primary-color);
+}
+
+.App {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.top {
+  height: 10px;
+  background: linear-gradient(90deg, cyan 10%, purple 40%, deeppink 90%);
+}
+
+.appHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--surface-color);
+}
+
+.appBrand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 30px;
+}
+
+.appLogo {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+.appTitle {
+  display: inline-flex;
+  align-items: center;
+  color: var(--heading-color);
+  font-size: 1.12rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.themeSwitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--secondary-color);
+  font-size: 0.85rem;
+}
+
+.themeSwitch > select {
+  min-width: 95px;
+  height: 30px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-color);
+  color: var(--font-color);
+  padding: 0 8px;
+}
+
+.content {
+  width: min(1240px, 100%);
+  margin: 0 auto;
+  padding: 16px 14px;
+  flex: 1;
+}
+
+.infoText {
+  margin: 10px 0 0;
+  color: var(--secondary-color);
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.footer {
+  border-top: 1px solid var(--border-color);
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .appHeader {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding: 8px 10px;
+  }
+
+  .appTitle {
+    font-size: 0.9rem;
+  }
+
+  .appLogo {
+    width: 20px;
+    height: 20px;
+  }
+
+  .appBrand {
+    min-height: 28px;
+  }
+
+  .themeSwitch {
+    margin-left: auto;
+    font-size: 0.8rem;
+  }
+
+  .themeSwitch > select {
+    min-width: 86px;
+    height: 28px;
+  }
+
+  .content {
+    padding: 10px 8px;
+  }
+
+  .infoText {
+    font-size: 0.8rem;
+  }
+}
