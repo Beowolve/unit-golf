@@ -5,8 +5,6 @@ header = """
 body = """
 {% if version %}
 ## {{ version | trim_start_matches(pat="v") }} - {{ timestamp | date(format="%Y-%m-%d") }}
-{% else %}
-## Unreleased
 {% endif %}
 {% for group, commits in commits | group_by(attribute="group") %}
 ### {{ group | striptags | trim | upper_first }}
@@ -19,7 +17,7 @@ trim = true
 
 [git]
 conventional_commits = true
-filter_unconventional = true
+filter_unconventional = false
 split_commits = false
 protect_breaking_commits = true
 filter_commits = true
@@ -30,9 +28,14 @@ topo_order = false
 sort_commits = "oldest"
 
 commit_parsers = [
-  # Ignore workflow/build/release maintenance, even when mislabeled as feat/fix.
+  # Ignore maintenance and internal-only changes for release notes.
+  { message = "^docs", skip = true },
+  { message = "^test", skip = true },
+  { message = "^refactor", skip = true },
+  { message = "^(build|ci|chore)", skip = true },
   { message = "^(feat|fix|perf)\\((ci|workflow|release|deps|build)\\)", skip = true },
   { message = "(bump|version|release notes|github actions|workflow)", skip = true },
+  { message = "^initialize", skip = true },
 
   # Keep release notes focused on end-user value.
   { message = "^feat", group = "Features" },
