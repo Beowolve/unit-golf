@@ -110,70 +110,7 @@ jobs:
 
   deploy_ftp:
     needs: release
-    runs-on: ubuntu-latest
-    env:
-      FTP_HOST: ${{ secrets.FTP_HOST }}
-      FTP_PORT: ${{ secrets.FTP_PORT }}
-      FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-      FTP_REMOTE_DIR: ${{ secrets.FTP_REMOTE_DIR }}
-      FTP_SECURE: ${{ secrets.FTP_SECURE }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build production bundle
-        run: npm run build
-
-      - name: Validate FTP deployment configuration
-        shell: bash
-        run: |
-          missing=0
-          for key in FTP_HOST FTP_USERNAME FTP_PASSWORD FTP_REMOTE_DIR; do
-            if [ -z "${!key}" ]; then
-              echo "::error::Missing required repository secret: ${key}"
-              missing=1
-            fi
-          done
-          if [ "${missing}" -ne 0 ]; then
-            exit 1
-          fi
-
-      - name: Install lftp
-        run: sudo apt-get update && sudo apt-get install -y lftp
-
-      - name: Upload dist via FTP
-        shell: bash
-        run: |
-          ftp_port="${FTP_PORT:-21}"
-          ftp_secure="${FTP_SECURE:-false}"
-
-          if [ "${ftp_secure}" = "true" ]; then
-            ftp_ssl_allow="true"
-            ftp_ssl_force="true"
-          else
-            ftp_ssl_allow="false"
-            ftp_ssl_force="false"
-          fi
-
-          lftp <<EOF
-          set cmd:fail-exit true
-          set net:max-retries 2
-          set net:timeout 30
-          set net:persist-retries 0
-          set ftp:passive-mode true
-          set ftp:ssl-allow ${ftp_ssl_allow}
-          set ftp:ssl-force ${ftp_ssl_force}
-          open -p ${ftp_port} -u "${FTP_USERNAME}","${FTP_PASSWORD}" "${FTP_HOST}"
-          mirror --reverse --delete --verbose "dist" "${FTP_REMOTE_DIR}"
-          bye
-          EOF
+    uses: ./.github/workflows/deploy-ftp.yml
+    with:
+      ref: ${{ github.ref_name }}
+    secrets: inherit

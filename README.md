@@ -57,7 +57,22 @@ What it does:
 - Generates release notes with `git-cliff`
 - Publishes a GitHub Release
 - Sends optional Discord notification
-- Builds the app and deploys `dist/` to your FTP server
+- Calls reusable FTP deploy workflow
+
+## Manual FTP Deploy
+
+You can run FTP deploy manually without creating a release tag.
+
+GitHub UI:
+
+- Actions -> `Deploy FTP` -> Run workflow
+- Optional input `ref` (for example `main`, `v1.0.1`, or commit SHA)
+
+GitHub CLI:
+
+```bash
+gh workflow run "Deploy FTP" -f ref=main
+```
 
 Required repository secrets for FTP deployment:
 
