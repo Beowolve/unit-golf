@@ -57,7 +57,7 @@ What it does:
 - Generates release notes with `git-cliff`
 - Publishes a GitHub Release
 - Sends optional Discord notification
-- Calls reusable FTP deploy workflow
+- Deploys `dist/` to FTP/FTPS via reusable action
 
 ## Reusable CI Modules
 
@@ -66,7 +66,6 @@ To reuse automation across projects, the workflow is split into reusable modules
 - `.github/actions/generate-release-notes` (git-cliff range + generation)
 - `.github/actions/notify-discord-release` (Discord webhook notification)
 - `.github/actions/deploy-ftp` (build + FTP/FTPS upload)
-- `.github/workflows/deploy-ftp.yml` (manual + callable deploy wrapper)
 
 You can copy these folders into other repositories with minimal workflow glue.
 
@@ -76,13 +75,13 @@ You can run FTP deploy manually without creating a release tag.
 
 GitHub UI:
 
-- Actions -> `Deploy FTP` -> Run workflow
+- Actions -> `Release Notes` -> Run workflow
 - Optional input `ref` (for example `main`, `v1.0.1`, or commit SHA)
 
 GitHub CLI:
 
 ```bash
-gh workflow run "Deploy FTP" -f ref=main
+gh workflow run "Release Notes" -f ref=main
 ```
 
 Required repository secrets for FTP deployment:
