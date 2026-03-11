@@ -1,0 +1,85 @@
+name: Notify Discord Release
+description: Send release notes summary to a Discord webhook.
+
+inputs:
+  webhook-url:
+    description: Discord webhook URL.
+    required: false
+    default: ""
+  tag-name:
+    description: Release tag name.
+    required: true
+  release-url:
+    description: GitHub release URL.
+    required: true
+  notes-path:
+    description: Path to generated release notes file.
+    required: false
+    default: RELEASE_NOTES.md
+  username:
+    description: Discord bot username.
+    required: false
+    default: Release Bot
+  title-prefix:
+    description: Prefix shown in embed title.
+    required: false
+    default: Release
+  max-length:
+    description: Maximum notes length before truncation.
+    required: false
+    default: "3800"
+  color:
+    description: Embed color as integer string.
+    required: false
+    default: "3447003"
+
+runs:
+  using: composite
+  steps:
+    - name: Send Discord notification
+      shell: bash
+      run: |
+        webhook_url='${{ inputs.webhook-url }}'
+
+        if [ -z "${webhook_url}" ]; then
+          echo "::warning::DISCORD_RELEASE_WEBHOOK_URL is not configured. Skipping Discord release notification."
+          exit 0
+        fi
+
+        notes=""
+        if [ -f "${{ inputs.notes-path }}" ]; then
+          notes="$(cat "${{ inputs.notes-path }}")"
+        fi
+
+        if [ -z "${notes}" ]; then
+          notes="No release notes were generated for this release."
+        fi
+
+        max_length='${{ inputs.max-length }}'
+        if [ ${#notes} -gt ${max_length} ]; then
+          notes="${notes:0:${max_length}}\n\n[... truncated, read full notes in GitHub release.]"
+        fi
+
+        payload="$(jq -n \
+          --arg username '${{ inputs.username }}' \
+          --arg title '${{ inputs.title-prefix }} ${{ inputs.tag-name }}' \
+          --arg url '${{ inputs.release-url }}' \
+          --arg description "${notes}" \
+          --arg color '${{ inputs.color }}' \
+          '{
+            username: $username,
+            embeds: [
+              {
+                title: $title,
+                url: $url,
+                description: $description,
+                color: ($color | tonumber? // 3447003)
+              }
+            ]
+          }')"
+
+        curl --fail-with-body \
+          --header "Content-Type: application/json" \
+          --request POST \
+          --data "${payload}" \
+          "${webhook_url}"

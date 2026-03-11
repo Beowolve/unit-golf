@@ -1,0 +1,62 @@
+name: Generate Release Notes
+description: Generate release notes with git-cliff for the current tag push.
+
+inputs:
+  config:
+    description: Path to git-cliff config file.
+    required: false
+    default: cliff.toml
+  tag-pattern:
+    description: Tag glob pattern used to resolve previous releases.
+    required: false
+    default: v*.*.*
+  strip-part:
+    description: Part to strip from git-cliff output.
+    required: false
+    default: header
+  output-file:
+    description: Output file path for generated release notes.
+    required: false
+    default: RELEASE_NOTES.md
+
+outputs:
+  previous-tag:
+    description: Previous release tag found by pattern.
+    value: ${{ steps.range.outputs.previous_tag }}
+  cliff-args:
+    description: Effective git-cliff arguments used for generation.
+    value: ${{ steps.range.outputs.cliff_args }}
+
+runs:
+  using: composite
+  steps:
+    - name: Determine tag range
+      id: range
+      shell: bash
+      run: |
+        current_tag="${GITHUB_REF_NAME}"
+        previous_tag="$(git tag --list "${{ inputs.tag-pattern }}" --sort=-v:refname | grep -Fxv "${current_tag}" | head -n 1 || true)"
+
+        if [ -n "${previous_tag}" ]; then
+          cliff_args="${previous_tag}..${current_tag} --strip ${{ inputs.strip-part }}"
+          echo "Using range: ${previous_tag}..${current_tag}"
+        else
+          # First release tag in this repo: use explicit tag mode instead of commit range.
+          cliff_args="--tag ${current_tag} --strip ${{ inputs.strip-part }}"
+          echo "No previous tag found. Using tag mode for ${current_tag}."
+        fi
+
+        echo "previous_tag=${previous_tag}" >> "${GITHUB_OUTPUT}"
+        {
+          echo "cliff_args<<EOF"
+          echo "${cliff_args}"
+          echo "EOF"
+        } >> "${GITHUB_OUTPUT}"
+
+    - name: Generate release notes with git-cliff
+      uses: orhun/git-cliff-action@v4
+      with:
+        config: ${{ inputs.config }}
+        args: ${{ steps.range.outputs.cliff_args }}
+      env:
+        OUTPUT: ${{ inputs.output-file }}
