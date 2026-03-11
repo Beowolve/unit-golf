@@ -67,7 +67,12 @@ export default function App() {
       <header className="appHeader">
         <div className="appBrand">
           <img className="appLogo" src={`${import.meta.env.BASE_URL}tape.png`} alt="Tape measure logo" />
-          <div className="appTitle">Unit Golf</div>
+          <span className="appBrandMeta">
+            <span className="appTitle">Unit Golf</span>
+            <span className="appVersion" aria-label={`Version ${__APP_VERSION__}`}>
+              v{__APP_VERSION__}
+            </span>
+          </span>
         </div>
         <label className="themeSwitch" htmlFor="themeMode">
           Theme

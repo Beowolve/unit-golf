@@ -69,6 +69,12 @@ a:visited {
   min-height: 30px;
 }
 
+.appBrandMeta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
 .appLogo {
   width: 26px;
   height: 26px;
@@ -84,6 +90,13 @@ a:visited {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   line-height: 1;
+}
+
+.appVersion {
+  color: var(--secondary-color);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .themeSwitch {
@@ -132,8 +145,16 @@ a:visited {
     padding: 8px 10px;
   }
 
+  .appBrandMeta {
+    gap: 4px;
+  }
+
   .appTitle {
     font-size: 0.9rem;
+  }
+
+  .appVersion {
+    font-size: 0.64rem;
   }
 
   .appLogo {
