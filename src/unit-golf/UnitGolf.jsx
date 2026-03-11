@@ -19,11 +19,34 @@ const UNITS = [
   "cap",
 ];
 
+const UNIT_CASE_KEY = "unit-golf.unit-case";
+const UNIT_CASE_OPTIONS = {
+  LOWERCASE: "lowercase",
+  UPPERCASE: "uppercase",
+};
+
+function getInitialUnitCase() {
+  if (typeof window === "undefined") {
+    return UNIT_CASE_OPTIONS.LOWERCASE;
+  }
+
+  const savedUnitCase = window.localStorage.getItem(UNIT_CASE_KEY);
+  if (
+    savedUnitCase === UNIT_CASE_OPTIONS.LOWERCASE ||
+    savedUnitCase === UNIT_CASE_OPTIONS.UPPERCASE
+  ) {
+    return savedUnitCase;
+  }
+
+  return UNIT_CASE_OPTIONS.LOWERCASE;
+}
+
 class UnitGolf extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       units: [],
+      unitCase: getInitialUnitCase(),
     };
   }
 
@@ -54,25 +77,28 @@ class UnitGolf extends React.Component {
     return Number(Math.round(number * pow) / pow);
   };
 
-  getUnitValues = (px, unit, unitValue) => {
+  getUnitValues = (px, unit, outputCase, unitValue) => {
     const { name, multiplier } = unit;
-    unitValue = unitValue || this.clampPrecision(px / multiplier);
-    const pixelOffset = this.clampPrecision(unitValue * multiplier - px);
+    const normalizedUnitValue = unitValue ?? this.clampPrecision(px / multiplier);
+    const pixelOffset = this.clampPrecision(normalizedUnitValue * multiplier - px);
+    const unitName =
+      outputCase === UNIT_CASE_OPTIONS.UPPERCASE ? name.toUpperCase() : name.toLowerCase();
+
     return {
-      unitValue,
-      string: `${unitValue}${name}`.replace(/^0./, "."),
+      unitValue: normalizedUnitValue,
+      string: `${normalizedUnitValue}${unitName}`.replace(/^0./, "."),
       pixelOffset,
     };
   };
 
-  findBestUnitValue = (px, tolerance) => (unit) => {
-    let result = this.getUnitValues(px, unit);
+  findBestUnitValue = (px, tolerance, outputCase) => (unit) => {
+    let result = this.getUnitValues(px, unit, outputCase);
     const { unitValue } = result;
 
     if (!Number.isInteger(unitValue, tolerance) && unitValue !== Infinity) {
       for (let i = unitValue.toString().split(".")[1].length - 1; i >= 0; i--) {
         const newUnitValue = this.clampPrecision(unitValue, i);
-        const newResult = this.getUnitValues(px, unit, newUnitValue);
+        const newResult = this.getUnitValues(px, unit, outputCase, newUnitValue);
         const { pixelOffset } = newResult;
         if (Math.abs(pixelOffset) <= tolerance) {
           result = newResult;
@@ -83,8 +109,8 @@ class UnitGolf extends React.Component {
     return result;
   };
 
-  convertAndSort = (px, units, tolerance) => {
-    return units.map(this.findBestUnitValue(px, tolerance)).sort((a, b) => {
+  convertAndSort = (px, units, tolerance, outputCase) => {
+    return units.map(this.findBestUnitValue(px, tolerance, outputCase)).sort((a, b) => {
       const [lnA, lnB] = [a, b].map((item) => item.string.length);
       const [offsetA, offsetB] = [a.pixelOffset, b.pixelOffset].map(Math.abs);
       const lnDiff = lnA - lnB;
@@ -102,10 +128,18 @@ class UnitGolf extends React.Component {
 
   calcValues = () => {
     const frame = document.getElementById("calcFrame");
-    const calcDiv = frame.contentWindow.document.getElementById("calcDiv");
+    if (!frame || !frame.contentWindow) {
+      return;
+    }
 
-    let unitValue = document.getElementById("unitInput").value;
-    let fontValue = document.getElementById("fontInput").value;
+    const calcDiv = frame.contentWindow.document.getElementById("calcDiv");
+    if (!calcDiv) {
+      return;
+    }
+
+    let unitValue = document.getElementById("unitInput")?.value ?? "";
+    let fontValue = document.getElementById("fontInput")?.value ?? "";
+    const { unitCase } = this.state;
 
     if (!fontValue) {
       fontValue = "16px/18px''";
@@ -121,10 +155,23 @@ class UnitGolf extends React.Component {
 
     let result = [];
     if (pxWidth > 0) {
-      result = this.convertAndSort(pxWidth, units, 0.2);
+      result = this.convertAndSort(pxWidth, units, 0.2, unitCase);
     }
 
     this.setState({ units: result });
+  };
+
+  handleUnitCaseChange = (event) => {
+    const nextUnitCase = event.target.checked
+      ? UNIT_CASE_OPTIONS.UPPERCASE
+      : UNIT_CASE_OPTIONS.LOWERCASE;
+
+    this.setState({ unitCase: nextUnitCase }, () => {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(UNIT_CASE_KEY, nextUnitCase);
+      }
+      this.calcValues();
+    });
   };
 
   copyUnit = (value) => {
@@ -139,7 +186,7 @@ class UnitGolf extends React.Component {
   };
 
   render() {
-    const { units } = this.state;
+    const { units, unitCase } = this.state;
 
     return (
       <div>
@@ -167,6 +214,19 @@ class UnitGolf extends React.Component {
               placeholder="16px/18px''"
               onChange={this.calcValues}
             ></input>
+          </div>
+          <div className="unitCaseControl">
+            <span className="unitCaseText">lowercase / UPPERCASE</span>
+            <label className="unitCaseSwitch" htmlFor="unitCaseSwitch">
+              <input
+                id="unitCaseSwitch"
+                type="checkbox"
+                checked={unitCase === UNIT_CASE_OPTIONS.UPPERCASE}
+                onChange={this.handleUnitCaseChange}
+                aria-label="Toggle generated units between lowercase and uppercase"
+              />
+              <span className="unitCaseSlider"></span>
+            </label>
           </div>
         </div>
 
