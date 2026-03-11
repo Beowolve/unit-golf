@@ -1,0 +1,33 @@
+name: Build React App
+description: Install dependencies and build a React/Vite app.
+
+inputs:
+  node-version-file:
+    description: Path to Node version file used by setup-node.
+    required: false
+    default: .nvmrc
+  install-command:
+    description: Dependency installation command.
+    required: false
+    default: npm ci
+  build-command:
+    description: Build command that produces deployable output.
+    required: false
+    default: npm run build
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version-file: ${{ inputs.node-version-file }}
+        cache: npm
+
+    - name: Install dependencies
+      shell: bash
+      run: ${{ inputs.install-command }}
+
+    - name: Build production bundle
+      shell: bash
+      run: ${{ inputs.build-command }}
