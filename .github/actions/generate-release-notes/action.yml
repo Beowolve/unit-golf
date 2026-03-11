@@ -54,7 +54,7 @@ runs:
         } >> "${GITHUB_OUTPUT}"
 
     - name: Generate release notes with git-cliff
-      uses: orhun/git-cliff-action@v4
+      uses: orhun/git-cliff-action@c93ef52f3d0ddcdcc9bd5447d98d458a11cd4f72 # v4
       with:
         config: ${{ inputs.config }}
         args: ${{ steps.range.outputs.cliff_args }}
