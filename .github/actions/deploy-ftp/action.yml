@@ -1,0 +1,107 @@
+name: Deploy FTP
+description: Build project and upload dist folder to an FTP/FTPS server.
+
+inputs:
+  node-version-file:
+    description: Path to Node version file used by setup-node.
+    required: false
+    default: .nvmrc
+  install-command:
+    description: Dependency installation command.
+    required: false
+    default: npm ci
+  build-command:
+    description: Build command that produces deployable output.
+    required: false
+    default: npm run build
+  local-dir:
+    description: Local directory to upload.
+    required: false
+    default: dist
+  ftp-host:
+    description: FTP host.
+    required: true
+  ftp-port:
+    description: FTP port.
+    required: false
+    default: "21"
+  ftp-username:
+    description: FTP username.
+    required: true
+  ftp-password:
+    description: FTP password.
+    required: true
+  ftp-remote-dir:
+    description: Remote target directory.
+    required: true
+  ftp-secure:
+    description: Enable FTPS when true.
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Validate FTP deployment configuration
+      shell: bash
+      run: |
+        missing=0
+        for key in FTP_HOST FTP_USERNAME FTP_PASSWORD FTP_REMOTE_DIR; do
+          if [ -z "${!key}" ]; then
+            echo "::error::Missing required input: ${key}"
+            missing=1
+          fi
+        done
+        if [ "${missing}" -ne 0 ]; then
+          exit 1
+        fi
+      env:
+        FTP_HOST: ${{ inputs.ftp-host }}
+        FTP_USERNAME: ${{ inputs.ftp-username }}
+        FTP_PASSWORD: ${{ inputs.ftp-password }}
+        FTP_REMOTE_DIR: ${{ inputs.ftp-remote-dir }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version-file: ${{ inputs.node-version-file }}
+        cache: npm
+
+    - name: Install dependencies
+      shell: bash
+      run: ${{ inputs.install-command }}
+
+    - name: Build production bundle
+      shell: bash
+      run: ${{ inputs.build-command }}
+
+    - name: Install lftp
+      shell: bash
+      run: sudo apt-get update && sudo apt-get install -y lftp
+
+    - name: Upload build via FTP
+      shell: bash
+      run: |
+        ftp_port='${{ inputs.ftp-port }}'
+        ftp_secure='${{ inputs.ftp-secure }}'
+
+        if [ "${ftp_secure}" = "true" ]; then
+          ftp_ssl_allow="true"
+          ftp_ssl_force="true"
+        else
+          ftp_ssl_allow="false"
+          ftp_ssl_force="false"
+        fi
+
+        lftp <<EOF
+        set cmd:fail-exit true
+        set net:max-retries 2
+        set net:timeout 30
+        set net:persist-retries 0
+        set ftp:passive-mode true
+        set ftp:ssl-allow ${ftp_ssl_allow}
+        set ftp:ssl-force ${ftp_ssl_force}
+        open -p ${ftp_port} -u "${{ inputs.ftp-username }}","${{ inputs.ftp-password }}" "${{ inputs.ftp-host }}"
+        mirror --reverse --delete --verbose "${{ inputs.local-dir }}" "${{ inputs.ftp-remote-dir }}"
+        bye
+        EOF

@@ -65,7 +65,8 @@ To reuse automation across projects, the workflow is split into reusable modules
 
 - `.github/actions/generate-release-notes` (git-cliff range + generation)
 - `.github/actions/notify-discord-release` (Discord webhook notification)
-- `.github/workflows/deploy-ftp.yml` (manual + callable FTP deployment)
+- `.github/actions/deploy-ftp` (build + FTP/FTPS upload)
+- `.github/workflows/deploy-ftp.yml` (manual + callable deploy wrapper)
 
 You can copy these folders into other repositories with minimal workflow glue.
 
