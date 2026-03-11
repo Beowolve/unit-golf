@@ -48,6 +48,30 @@ Preview production build locally:
 npm run preview
 ```
 
+## Release Automation
+
+Release workflow runs on git tags in format `v*.*.*`.
+
+What it does:
+
+- Generates release notes with `git-cliff`
+- Publishes a GitHub Release
+- Sends optional Discord notification
+- Builds the app and deploys `dist/` to your FTP server
+
+Required repository secrets for FTP deployment:
+
+- `FTP_HOST`
+- `FTP_USERNAME`
+- `FTP_PASSWORD`
+- `FTP_REMOTE_DIR`
+
+Optional repository secrets:
+
+- `FTP_PORT` (defaults to `21`)
+- `FTP_SECURE` (`true` enables FTPS)
+- `DISCORD_RELEASE_WEBHOOK_URL`
+
 ## Author
 
 **Beo**
