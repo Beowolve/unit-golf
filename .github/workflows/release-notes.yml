@@ -8,6 +8,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -15,7 +18,7 @@ jobs:
       DISCORD_RELEASE_WEBHOOK_URL: ${{ secrets.DISCORD_RELEASE_WEBHOOK_URL }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -27,21 +30,27 @@ jobs:
           previous_tag="$(git tag --list 'v*.*.*' --sort=-v:refname | grep -Fxv "${current_tag}" | head -n 1 || true)"
 
           if [ -n "${previous_tag}" ]; then
-            range="${previous_tag}..${current_tag}"
+            cliff_args="${previous_tag}..${current_tag} --strip header"
+            echo "Using range: ${previous_tag}..${current_tag}"
           else
-            range="${current_tag}"
+            # First release tag in this repo: use explicit tag mode instead of commit range.
+            cliff_args="--tag ${current_tag} --strip header"
+            echo "No previous tag found. Using tag mode for ${current_tag}."
           fi
 
           echo "previous_tag=${previous_tag}" >> "${GITHUB_OUTPUT}"
-          echo "range=${range}" >> "${GITHUB_OUTPUT}"
-          echo "Using range: ${range}"
+          {
+            echo "cliff_args<<EOF"
+            echo "${cliff_args}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
 
       - name: Generate release notes with git-cliff
         id: git_cliff
         uses: orhun/git-cliff-action@v4
         with:
           config: cliff.toml
-          args: "${{ steps.tag_range.outputs.range }} --strip header"
+          args: "${{ steps.tag_range.outputs.cliff_args }}"
         env:
           OUTPUT: RELEASE_NOTES.md
 
