@@ -14,45 +14,18 @@ env:
 jobs:
   release:
     runs-on: ubuntu-latest
-    env:
-      DISCORD_RELEASE_WEBHOOK_URL: ${{ secrets.DISCORD_RELEASE_WEBHOOK_URL }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Determine tag range
-        id: tag_range
-        shell: bash
-        run: |
-          current_tag="${GITHUB_REF_NAME}"
-          previous_tag="$(git tag --list 'v*.*.*' --sort=-v:refname | grep -Fxv "${current_tag}" | head -n 1 || true)"
-
-          if [ -n "${previous_tag}" ]; then
-            cliff_args="${previous_tag}..${current_tag} --strip header"
-            echo "Using range: ${previous_tag}..${current_tag}"
-          else
-            # First release tag in this repo: use explicit tag mode instead of commit range.
-            cliff_args="--tag ${current_tag} --strip header"
-            echo "No previous tag found. Using tag mode for ${current_tag}."
-          fi
-
-          echo "previous_tag=${previous_tag}" >> "${GITHUB_OUTPUT}"
-          {
-            echo "cliff_args<<EOF"
-            echo "${cliff_args}"
-            echo "EOF"
-          } >> "${GITHUB_OUTPUT}"
-
-      - name: Generate release notes with git-cliff
-        id: git_cliff
-        uses: orhun/git-cliff-action@v4
+      - name: Generate release notes
+        id: release_notes
+        uses: ./.github/actions/generate-release-notes
         with:
           config: cliff.toml
-          args: "${{ steps.tag_range.outputs.cliff_args }}"
-        env:
-          OUTPUT: RELEASE_NOTES.md
+          output-file: RELEASE_NOTES.md
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
@@ -62,51 +35,14 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-') }}
 
       - name: Notify Discord about release notes
-        if: ${{ env.DISCORD_RELEASE_WEBHOOK_URL != '' }}
-        shell: bash
-        run: |
-          release_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${GITHUB_REF_NAME}"
-          notes=""
-
-          if [ -f RELEASE_NOTES.md ]; then
-            notes="$(cat RELEASE_NOTES.md)"
-          fi
-
-          if [ -z "${notes}" ]; then
-            notes="No release notes were generated for this release."
-          fi
-
-          max_length=3800
-          if [ ${#notes} -gt ${max_length} ]; then
-            notes="${notes:0:${max_length}}\n\n[... truncated, read full notes in GitHub release.]"
-          fi
-
-          payload="$(jq -n \
-            --arg username "Unit Golf Releases" \
-            --arg title "Unit Golf ${GITHUB_REF_NAME}" \
-            --arg url "${release_url}" \
-            --arg description "${notes}" \
-            '{
-              username: $username,
-              embeds: [
-                {
-                  title: $title,
-                  url: $url,
-                  description: $description,
-                  color: 3447003
-                }
-              ]
-            }')"
-
-          curl --fail-with-body \
-            --header "Content-Type: application/json" \
-            --request POST \
-            --data "${payload}" \
-            "${DISCORD_RELEASE_WEBHOOK_URL}"
-
-      - name: Warn if Discord webhook is missing
-        if: ${{ env.DISCORD_RELEASE_WEBHOOK_URL == '' }}
-        run: echo "::warning::DISCORD_RELEASE_WEBHOOK_URL is not configured. Skipping Discord release notification."
+        uses: ./.github/actions/notify-discord-release
+        with:
+          webhook-url: ${{ secrets.DISCORD_RELEASE_WEBHOOK_URL }}
+          tag-name: ${{ github.ref_name }}
+          release-url: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}
+          notes-path: RELEASE_NOTES.md
+          username: Unit Golf Releases
+          title-prefix: Unit Golf
 
   deploy_ftp:
     needs: release

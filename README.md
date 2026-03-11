@@ -59,6 +59,16 @@ What it does:
 - Sends optional Discord notification
 - Calls reusable FTP deploy workflow
 
+## Reusable CI Modules
+
+To reuse automation across projects, the workflow is split into reusable modules:
+
+- `.github/actions/generate-release-notes` (git-cliff range + generation)
+- `.github/actions/notify-discord-release` (Discord webhook notification)
+- `.github/workflows/deploy-ftp.yml` (manual + callable FTP deployment)
+
+You can copy these folders into other repositories with minimal workflow glue.
+
 ## Manual FTP Deploy
 
 You can run FTP deploy manually without creating a release tag.
